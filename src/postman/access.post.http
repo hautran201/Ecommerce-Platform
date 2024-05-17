@@ -1,0 +1,22 @@
+@url_dev=http://localhost:8000/v1/api/
+
+
+# POST {{url_dev}}/shop/signup
+# Content-Type: application/json
+# x-api-key: 6abdb96f9713fc0e2d88f738204d0a551582e445d153bb9f735526a77ea7d226bb8e0b276a6d36ad5828731f9612cc45b59fa6b555af07b5304831a40edf1ebb
+
+# {
+#     "name": "ShopDino",
+#     "email": "shopdino04@gmail.com",
+#     "password": "dino123"
+# }
+
+
+POST {{url_dev}}/shop/login
+Content-Type: application/json
+x-api-key: 6abdb96f9713fc0e2d88f738204d0a551582e445d153bb9f735526a77ea7d226bb8e0b276a6d36ad5828731f9612cc45b59fa6b555af07b5304831a40edf1ebb
+
+{
+    "email": "shopdino04@gmail.com",
+    "password": "dino123"
+}
