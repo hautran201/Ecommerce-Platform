@@ -16,7 +16,9 @@ const {
     searchProductByUser,
     findAllProducts,
     findProduct,
+    updateProductById,
 } = require('../models/repositories/product.repository');
+const { removeUndefinedObject, updateNestedObjectParser } = require('../utils');
 
 //define Factory class create product
 class ProductFactory {
@@ -32,6 +34,14 @@ class ProductFactory {
             throw new BadRequestError(`Invalid product type ${type}`);
 
         return new productClass(payload).createProduct();
+    }
+
+    static async updateProduct(type, productId, payload) {
+        const productClass = this.productRegistry[type];
+        if (!productClass)
+            throw new BadRequestError(`Invalid product type ${type}`);
+
+        return new productClass(payload).updateProduct(productId);
     }
 
     // POST //
@@ -105,6 +115,13 @@ class Product {
     async createProduct(product_id) {
         return await product.create({ ...this, _id: product_id });
     }
+    async updateProduct(productId, bodyUpdate) {
+        return await updateProductById({
+            productId,
+            bodyUpdate,
+            model: product,
+        });
+    }
 }
 
 //define sub-class different product type Clothing
@@ -122,6 +139,23 @@ class Clothing extends Product {
 
         return newProduct;
     }
+
+    async updateProduct(productId) {
+        //1.remove attributes has null and undefined
+        const objParams = this;
+        // Check to see where the update is?
+        if (objParams.product_attributes) {
+            // update child attributes
+            await updateProductById({
+                productId,
+                bodyUpdate,
+                model: clothing,
+            });
+        }
+
+        const updateProduct = await super.updateProduct(productId, objParams);
+        return updateProduct;
+    }
 }
 
 //define sub-class different product type Electronic
@@ -138,6 +172,29 @@ class Electronic extends Product {
         if (!newProduct) throw new BadRequestError('Create new Product error');
 
         return newProduct;
+    }
+
+    async updateProduct(productId) {
+        //1.remove attributes has null and undefined
+        // const objParams = removeUndefinedObject(this);
+        const objParams = this;
+        // Check to see where the update is?
+        if (objParams.product_attributes) {
+            // update child attributes
+            await updateProductById({
+                productId,
+                bodyUpdate: updateNestedObjectParser(
+                    objParams.product_attributes
+                ),
+                model: electronic,
+            });
+        }
+
+        const updateProduct = await super.updateProduct(
+            productId,
+            updateNestedObjectParser(objParams)
+        );
+        return updateProduct;
     }
 }
 //define sub-class different product type Electronic

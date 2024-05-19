@@ -14,6 +14,17 @@ class AccessController {
         }).send(res);
     };
 
+    updateProduct = async (req, res, next) => {
+        new SuccessReponse({
+            message: ' Update Product Success!',
+            metadata: await ProductService.updateProduct(
+                req.body.product_type,
+                req.params.productId,
+                { ...req.body, product_shop: req.user.userId }
+            ),
+        }).send(res);
+    };
+
     /**
      * @description Publish product for Shop
      * @param {ObjectId} product_id
