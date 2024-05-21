@@ -19,6 +19,9 @@ const {
     updateProductById,
 } = require('../models/repositories/product.repository');
 const { removeUndefinedObject, updateNestedObjectParser } = require('../utils');
+const {
+    insertInventory,
+} = require('../models/repositories/inventory.repository');
 
 //define Factory class create product
 class ProductFactory {
@@ -113,7 +116,15 @@ class Product {
     }
 
     async createProduct(product_id) {
-        return await product.create({ ...this, _id: product_id });
+        const newProduct = await product.create({ ...this, _id: product_id });
+        if (newProduct) {
+            await insertInventory({
+                productId: newProduct._id,
+                shopId: this.product_shop,
+                stock: this.product_quantity,
+            });
+        }
+        return newProduct;
     }
     async updateProduct(productId, bodyUpdate) {
         return await updateProductById({
@@ -142,18 +153,24 @@ class Clothing extends Product {
 
     async updateProduct(productId) {
         //1.remove attributes has null and undefined
+        // const objParams = removeUndefinedObject(this);
         const objParams = this;
         // Check to see where the update is?
         if (objParams.product_attributes) {
             // update child attributes
             await updateProductById({
                 productId,
-                bodyUpdate,
-                model: clothing,
+                bodyUpdate: updateNestedObjectParser(
+                    objParams.product_attributes
+                ),
+                model: electronic,
             });
         }
 
-        const updateProduct = await super.updateProduct(productId, objParams);
+        const updateProduct = await super.updateProduct(
+            productId,
+            updateNestedObjectParser(objParams)
+        );
         return updateProduct;
     }
 }
@@ -211,6 +228,29 @@ class Furniture extends Product {
         if (!newProduct) throw new BadRequestError('Create new Product error');
 
         return newProduct;
+    }
+
+    async updateProduct(productId) {
+        //1.remove attributes has null and undefined
+        // const objParams = removeUndefinedObject(this);
+        const objParams = this;
+        // Check to see where the update is?
+        if (objParams.product_attributes) {
+            // update child attributes
+            await updateProductById({
+                productId,
+                bodyUpdate: updateNestedObjectParser(
+                    objParams.product_attributes
+                ),
+                model: electronic,
+            });
+        }
+
+        const updateProduct = await super.updateProduct(
+            productId,
+            updateNestedObjectParser(objParams)
+        );
+        return updateProduct;
     }
 }
 
