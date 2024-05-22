@@ -1,0 +1,38 @@
+'use strict';
+
+const { cart } = require('../cart.model');
+
+const createUserCart = async ({ userId, product }) => {
+    const query = { cart_userId: userId, cart_status: 'active' },
+        updateOrIsert = {
+            $addToSet: {
+                cart_products: product,
+            },
+        },
+        options = { upsert: true, new: true };
+
+    return await cart.findOneAndUpdate(query, updateOrIsert, options);
+};
+
+const updateUserCartQuantity = async ({ userId, product }) => {
+    const { productId, quantity } = product;
+
+    const query = {
+            cart_userId: userId,
+            'cart_products.productId': productId,
+            cart_status: 'active',
+        },
+        updateSet = {
+            $inc: {
+                'cart_products.$.quantity': quantity,
+            },
+        },
+        options = { upsert: true, new: true };
+
+    return await cart.findOneAndUpdate(query, updateSet, options);
+};
+
+module.exports = {
+    createUserCart,
+    updateUserCartQuantity,
+};
