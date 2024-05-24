@@ -104,6 +104,19 @@ const getProductById = async (productId) => {
         .lean();
 };
 
+const checkProductByServer = async (products) => {
+    return Promise.all(
+        products.map(async (product) => {
+            const foundProuct = await getProductById(product.productId);
+            return {
+                product_price: foundProuct.product_price,
+                product_quantity: product.quantity,
+                productId: product.productId,
+            };
+        })
+    );
+};
+
 const updateProductById = async ({
     productId,
     bodyUpdate,
@@ -123,4 +136,5 @@ module.exports = {
     findProduct,
     updateProductById,
     getProductById,
+    checkProductByServer,
 };

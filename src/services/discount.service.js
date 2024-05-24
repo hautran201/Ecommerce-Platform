@@ -187,6 +187,8 @@ class DiscountService {
             discount_end_date,
             discount_start_date,
             discount_value,
+            discount_product_ids,
+            discount_applies_to,
         } = foundDiscount;
 
         console.log(`[Discount value::]`, discount_value);
@@ -203,13 +205,24 @@ class DiscountService {
             throw new NotFoundError(`Discount code has expried!`);
         }
 
+        console.log(`discount_product_ids::`, discount_product_ids);
         //check xem co gia tri toi thieu hay khong
-        console.log(`[products]::`, products);
         let totalOrder = 0;
         if (discount_min_order_value > 0) {
-            totalOrder = products.reduce((acc, product) => {
-                return acc + product.product_price * product.product_quantity;
-            }, 0);
+            if (discount_applies_to === 'all') {
+                totalOrder = products.reduce((acc, product) => {
+                    return (
+                        acc + product.product_price * product.product_quantity
+                    );
+                }, 0);
+            } else {
+                products.map((product) => {
+                    if (discount_product_ids.includes(product.productId)) {
+                        totalOrder +=
+                            product.product_quantity * product.product_price;
+                    }
+                });
+            }
 
             if (totalOrder < discount_min_order_value) {
                 throw new NotFoundError(
@@ -235,7 +248,7 @@ class DiscountService {
 
         return {
             totalOrder,
-            amount,
+            discount: amount,
             totalPrice: totalOrder - amount,
         };
     }
