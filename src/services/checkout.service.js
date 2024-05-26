@@ -6,7 +6,9 @@ const {
     checkProductByServer,
 } = require('../models/repositories/product.repository');
 const { getDiscountAmount } = require('./discount.service');
-
+const { acquireLock, releaseLock } = require('./redis.service');
+const { order } = require('../models/order.model');
+const CartService = require('../services/cart.service');
 class CheckoutService {
     /**
         {
@@ -118,6 +120,86 @@ class CheckoutService {
             };
         }
     }
+
+    static async orderByUser({
+        cartId,
+        userId,
+        shop_order_ids,
+        user_payment = {},
+        user_address = {},
+    }) {
+        const { shop_order_ids_new, checkout_order } =
+            await this.checkoutReview({
+                cartId,
+                userId,
+                shop_order_ids,
+            });
+        const products = shop_order_ids_new.flatMap(
+            (order) => order.item_products
+        );
+        console.log(`[1] products::`, products);
+        const acquireProduct = [];
+
+        for (let i = 0; i < products.length; i++) {
+            const { quantity, productId } = products[i];
+
+            const keyLock = await acquireLock(productId, quantity, cartId);
+            console.log(`keyLock:: ${keyLock}`);
+            acquireProduct.push(keyLock ? true : false);
+
+            if (keyLock) {
+                await releaseLock(keyLock);
+            }
+        }
+        //check neu co san pham het hang trong kho
+        if (acquireProduct.includes(false)) {
+            throw new BadRequestError(
+                'Some products have been updated, please return to the cart!'
+            );
+        }
+
+        const newOrder = await order.create({
+            order_userId: userId,
+            order_shipping: user_address,
+            order_payment: user_payment,
+            order_checkout: checkout_order,
+            order_products: shop_order_ids_new,
+        });
+
+        // case 1 : if inserted success remove product from cart
+        if (newOrder) {
+            //remove product from cart
+            const { order_products } = newOrder;
+            order_products.item_products.map(async (product) => {
+                await CartService.deleteUserCart({
+                    userId,
+                    productId: product.productId,
+                });
+            });
+        }
+
+        return newOrder;
+    }
+
+    /*
+        Query Orders [Users] 
+     */
+    static async getOrderByUser() {}
+
+    /*
+        Query Orders Using Id [Users] 
+     */
+    static async getOneOrderByUser() {}
+
+    /*
+        Cancel Orders  [Users] 
+     */
+    static async cancelOrderByUser() {}
+
+    /*
+        Update Order Status by Shop [Shop | Admin]
+     */
+    static async updateOrdeStatusByShop() {}
 }
 
 module.exports = CheckoutService;
